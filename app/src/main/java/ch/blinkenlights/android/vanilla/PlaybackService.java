@@ -547,14 +547,14 @@ public final class PlaybackService extends Service
 			if (ACTION_TOGGLE_PLAYBACK.equals(action)) {
 				playPause(forceNotification);
 			} else if (ACTION_TOGGLE_PLAYBACK_DELAYED.equals(action)) {
-				if (mHandler.hasMessages(MSG_CALL_GO, Integer.valueOf(0))) {
-					mHandler.removeMessages(MSG_CALL_GO, Integer.valueOf(0));
+				if (mHandler.hasMessages(MSG_CALL_GO, 0)) {
+					mHandler.removeMessages(MSG_CALL_GO, 0);
 					Intent launch = new Intent(this, LibraryActivity.class);
 					launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 					launch.setAction(Intent.ACTION_MAIN);
 					startActivity(launch);
 				} else {
-					mHandler.sendMessageDelayed(mHandler.obtainMessage(MSG_CALL_GO, 0, 0, Integer.valueOf(0)), 400);
+					mHandler.sendMessageDelayed(mHandler.obtainMessage(MSG_CALL_GO, 0, 0, 0), 400);
 				}
 			} else if (ACTION_NEXT_SONG.equals(action)) {
 				shiftCurrentSong(SongTimeline.SHIFT_NEXT_SONG);
@@ -562,14 +562,14 @@ public final class PlaybackService extends Service
 				shiftCurrentSong(SongTimeline.SHIFT_NEXT_SONG);
 				play();
 			} else if (ACTION_NEXT_SONG_DELAYED.equals(action)) {
-				if (mHandler.hasMessages(MSG_CALL_GO, Integer.valueOf(1))) {
-					mHandler.removeMessages(MSG_CALL_GO, Integer.valueOf(1));
+				if (mHandler.hasMessages(MSG_CALL_GO, 1)) {
+					mHandler.removeMessages(MSG_CALL_GO, 1);
 					Intent launch = new Intent(this, LibraryActivity.class);
 					launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 					launch.setAction(Intent.ACTION_MAIN);
 					startActivity(launch);
 				} else {
-					mHandler.sendMessageDelayed(mHandler.obtainMessage(MSG_CALL_GO, 1, 0, Integer.valueOf(1)), 400);
+					mHandler.sendMessageDelayed(mHandler.obtainMessage(MSG_CALL_GO, 1, 0, 1), 400);
 				}
 			} else if (ACTION_PREVIOUS_SONG.equals(action)) {
 				rewindCurrentSong();

@@ -295,11 +295,7 @@ public final class SongTimeline {
 		@Override
 		public int compare(Song a, Song b)
 		{
-			if (a.id == b.id)
-				return 0;
-			if (a.id > b.id)
-				return 1;
-			return -1;
+			return Long.compare(a.id, b.id);
 		}
 	}
 

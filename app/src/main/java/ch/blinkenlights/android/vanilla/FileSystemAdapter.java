@@ -133,11 +133,10 @@ public class FileSystemAdapter
 				int order;
 				switch (mode) {
 					case SORT_SIZE:
-						order = Long.valueOf(a.length()).compareTo(Long.valueOf(b.length()));
+						order = Long.compare(a.length(), b.length());
 						break;
 					case SORT_TIME:
-						order = Long.valueOf(a.lastModified())
-								.compareTo(Long.valueOf(b.lastModified()));
+						order = Long.compare(a.lastModified(), b.lastModified());
 						break;
 					case SORT_EXT:
 						order = FileUtils.getFileExtension(a.getName())
