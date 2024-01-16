@@ -167,28 +167,27 @@ public class LibraryActivity
 
 		setContentView(R.layout.library_content);
 
-		mLimiterScroller = (HorizontalScrollView)findViewById(R.id.limiter_scroller);
-		mLimiterViews = (ViewGroup)findViewById(R.id.limiter_layout);
+		mLimiterScroller = findViewById(R.id.limiter_scroller);
+		mLimiterViews = findViewById(R.id.limiter_layout);
 
 		LibraryPagerAdapter pagerAdapter = new LibraryPagerAdapter(this, mLooper);
 		mPagerAdapter = pagerAdapter;
 
-		ViewPager pager = (ViewPager)findViewById(R.id.pager);
+		ViewPager pager = findViewById(R.id.pager);
 		pager.setAdapter(pagerAdapter);
 		mViewPager = pager;
 
 		SharedPreferences settings = SharedPrefHelper.getSettings(this);
 
-		mBottomBarControls = (BottomBarControls)findViewById(R.id.bottombar_controls);
+		mBottomBarControls = findViewById(R.id.bottombar_controls);
 		mBottomBarControls.setOnClickListener(this);
 		mBottomBarControls.setOnQueryTextListener(this);
 		mBottomBarControls.enableOptionsMenu(this);
 
-		if(PermissionRequestActivity.havePermissions(this) == false) {
+		if(!PermissionRequestActivity.havePermissions(this))
 			PermissionRequestActivity.showWarning(this, getIntent());
-		}
 
-		mVanillaTabLayout = (VanillaTabLayout)findViewById(R.id.sliding_tabs);
+		mVanillaTabLayout = findViewById(R.id.sliding_tabs);
 		mVanillaTabLayout.setOnPageChangeListener(pagerAdapter);
 
 		loadTabOrder();

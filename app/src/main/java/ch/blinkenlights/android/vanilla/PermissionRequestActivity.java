@@ -20,20 +20,21 @@ package ch.blinkenlights.android.vanilla;
 
 import android.Manifest;
 import android.app.Activity;
-import android.content.pm.PackageManager;
 import android.content.Context;
 import android.content.Intent;
-import android.view.View;
-import android.view.ViewGroup;
-import android.view.LayoutInflater;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Toast;
 
-import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.List;
 
 public class PermissionRequestActivity extends Activity {
 
@@ -59,7 +60,7 @@ public class PermissionRequestActivity extends Activity {
 	 */
 	@Override
 	public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-		ArrayList<String> neededPerms = new ArrayList<>(Arrays.asList(getNeededPermissions()));
+		List<String> neededPerms = getNeededPermissions();
 		int grantedPermissions = 0;
 
 		for (int i = 0; i < permissions.length; i++) {
@@ -69,8 +70,7 @@ public class PermissionRequestActivity extends Activity {
 				grantedPermissions++;
 		}
 
-		// set as finished before (possibly) killing ourselfs
-		finish();
+		finishAffinity();
 
 		if (grantedPermissions == neededPerms.size()) {
 			if (mCallbackIntent != null) {
@@ -78,11 +78,6 @@ public class PermissionRequestActivity extends Activity {
 				mCallbackIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
 				startActivity(mCallbackIntent);
 			}
-			// Hack: We *kill* ourselfs (while launching the main activity) to get startet
-			// in a new process: This works around a bug/feature in 6.0 that would cause us
-			// to get 'partial read' permissions (eg: reading from the content provider works
-			// but reading from /sdcard doesn't)
-			android.os.Process.killProcess(android.os.Process.myPid());
 		}
 	}
 
@@ -96,14 +91,9 @@ public class PermissionRequestActivity extends Activity {
 		LayoutInflater inflater = LayoutInflater.from(activity);
 		View view = inflater.inflate(R.layout.permission_request, null, false);
 
-		view.setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				PermissionRequestActivity.requestPermissions(activity, intent);
-			}
-		});
+		view.setOnClickListener(v -> PermissionRequestActivity.requestPermissions(activity, intent));
 
-		ViewGroup parent = (ViewGroup)activity.findViewById(R.id.content); // main layout of library_content
+		ViewGroup parent = activity.findViewById(R.id.content); // main layout of library_content
 		parent.addView(view, -1);
 	}
 
@@ -116,7 +106,7 @@ public class PermissionRequestActivity extends Activity {
 	public static boolean requestPermissions(Activity activity, Intent callbackIntent) {
 		boolean havePermissions = havePermissions(activity);
 
-		if (havePermissions == false) {
+		if(!havePermissions) {
 			Intent intent = new Intent(activity, PermissionRequestActivity.class);
 			intent.putExtra("callbackIntent", callbackIntent);
 			activity.startActivity(intent);
@@ -132,49 +122,69 @@ public class PermissionRequestActivity extends Activity {
 	 * @return boolean true if all permissions have been granded
 	 */
 	public static boolean havePermissions(Context context) {
-		for (String permission : getNeededPermissions()) {
-			if (context.checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED) {
-				return false;
-			}
-		}
-		return true;
+		boolean ok = true;
+		if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) ok = Environment.isExternalStorageManager();
+		for(String permission : getNeededPermissions())
+			if(context.checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED) ok = false;
+		return ok;
 	}
 
-	private static String[] getNeededPermissions() {
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-			return new String[] { Manifest.permission.READ_MEDIA_AUDIO, Manifest.permission.READ_MEDIA_IMAGES };
+	private static List<String> getNeededPermissions() {
+		List<String> l = new ArrayList<>();
+		if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+			l.add(Manifest.permission.READ_MEDIA_AUDIO);
+			l.add(Manifest.permission.READ_MEDIA_IMAGES);
 		}
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-			return new String[] { Manifest.permission.READ_EXTERNAL_STORAGE };
+		if(Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+			l.add(Manifest.permission.READ_EXTERNAL_STORAGE);
+			l.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
 		}
-		return new String[] { Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE };
+		return l;
 	}
 
-	private static String[] getOptionalPermissions() {
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-			return new String[] { Manifest.permission.POST_NOTIFICATIONS };
-		}
-		return new String[]{};
-	}
-
-	private static String[] getAllFilesAccessPermissions() {
-		return new String[] { Manifest.permission.MANAGE_EXTERNAL_STORAGE };
+	private static List<String> getOptionalPermissions() {
+		List<String> l = new ArrayList<>();
+		if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+			l.add(Manifest.permission.POST_NOTIFICATIONS);
+		return l;
 	}
 
 	private void requestFileAccessPermissions(Intent callbackIntent) {
 		if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-			if(Environment.isExternalStorageManager()) startActivity(callbackIntent);
+			if(Environment.isExternalStorageManager()) resetFromMainActivity();
 			else {
 				Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
 				Uri uri = Uri.fromParts("package", getPackageName(), null);
 				intent.setData(uri);
-				startActivity(intent);
+				startActivityForResult(intent, 111222333);
 			}
 		}
 		else /*if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)*/ {
-			ArrayList<String> allPerms = new ArrayList<>(Arrays.asList(getNeededPermissions()));
-			allPerms.addAll(Arrays.asList(getOptionalPermissions()));
+			List<String> allPerms = getNeededPermissions();
+			allPerms.addAll(getOptionalPermissions());
 			requestPermissions(allPerms.toArray(new String[0]), 0);
 		}
+	}
+
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+		if(requestCode == 111222333) {
+			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+				if(!Environment.isExternalStorageManager()) {
+					Toast.makeText(this, "All-files permissions not granted, exiting", Toast.LENGTH_SHORT).show();
+					finishAffinity();
+				}
+				else {
+					Toast.makeText(this, "All-files permissions granted", Toast.LENGTH_SHORT).show();
+					resetFromMainActivity();
+				}
+			}
+		}
+	}
+
+	public void resetFromMainActivity() {
+		Intent intent = new Intent(this, LibraryActivity.class);
+		intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+		startActivity(intent);
 	}
 }
